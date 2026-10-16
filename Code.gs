@@ -2,7 +2,7 @@
 // Nastav TOKEN na vlastní tajný řetězec a stejný zadej v aplikaci.
 const TOKEN = 'ZMEN-MNE-na-dlouhy-tajny-klic';
 const SHEET = 'Výdaje';
-const COLS = ['id', 'typ', 'castka', 'za_co', 'zaplatil', 'datum', 'smazano', 'upraveno', 'ts'];
+const COLS = ['id', 'typ', 'castka', 'za_co', 'zaplatil', 'datum', 'smazano', 'upraveno', 'ts', 'rozdeleni'];
 
 function doPost(e) {
   const lock = LockService.getScriptLock();
@@ -14,7 +14,7 @@ function doPost(e) {
     const sh = sheet_();
     const props = PropertiesService.getScriptProperties();
     const values = sh.getDataRange().getValues();
-    const rows = values.slice(1);
+    const rows = values.slice(1).map(r => { while (r.length < COLS.length) r.push(''); return r.slice(0, COLS.length); });
     const index = new Map();
     rows.forEach((r, i) => index.set(String(r[0]), i));
 
@@ -29,7 +29,8 @@ function doPost(e) {
         new Date(Number(x.ts) || Date.now()),
         x.deleted === true,
         Number(x.updated) || 0,
-        Number(x.ts) || Date.now()
+        Number(x.ts) || Date.now(),
+        x.split === 'other' ? 'celé' : 'napůl'
       ];
       const i = index.get(row[0]);
       if (i === undefined) { rows.push(row); index.set(row[0], rows.length - 1); }
@@ -52,7 +53,8 @@ function doPost(e) {
       payer: r[4] === 'ex' ? 'ex' : 'me',
       ts: Number(r[8]) || (r[5] instanceof Date ? r[5].getTime() : Date.now()),
       deleted: r[6] === true || r[6] === 'TRUE',
-      updated: Number(r[7]) || 0
+      updated: Number(r[7]) || 0,
+      split: r[9] === 'celé' ? 'other' : 'half'
     }));
     return out({ ok: true, entries, names });
   } catch (err) {
@@ -71,6 +73,9 @@ function sheet_() {
     sh = ss.insertSheet(SHEET);
     sh.getRange(1, 1, 1, COLS.length).setValues([COLS]).setFontWeight('bold');
     sh.setFrozenRows(1);
+  }
+  if (sh.getRange(1, COLS.length).getValue() !== COLS[COLS.length - 1]) {
+    sh.getRange(1, 1, 1, COLS.length).setValues([COLS]).setFontWeight('bold');
   }
   return sh;
 }

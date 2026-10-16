@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Výdaje za děti</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Výdaje">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+@font-face{font-family:Manrope;font-weight:400;font-display:swap;src:url(fonts/manrope-latin-400.woff2) format("woff2");unicode-range:U+0000-00FF,U+2000-206F,U+20AC,U+2190-2193}
+@font-face{font-family:Manrope;font-weight:400;font-display:swap;src:url(fonts/manrope-latin-ext-400.woff2) format("woff2");unicode-range:U+0100-024F,U+1E00-1EFF}
+@font-face{font-family:Manrope;font-weight:500;font-display:swap;src:url(fonts/manrope-latin-500.woff2) format("woff2");unicode-range:U+0000-00FF,U+2000-206F,U+20AC,U+2190-2193}
+@font-face{font-family:Manrope;font-weight:500;font-display:swap;src:url(fonts/manrope-latin-ext-500.woff2) format("woff2");unicode-range:U+0100-024F,U+1E00-1EFF}
+@font-face{font-family:Manrope;font-weight:600;font-display:swap;src:url(fonts/manrope-latin-600.woff2) format("woff2");unicode-range:U+0000-00FF,U+2000-206F,U+20AC,U+2190-2193}
+@font-face{font-family:Manrope;font-weight:600;font-display:swap;src:url(fonts/manrope-latin-ext-600.woff2) format("woff2");unicode-range:U+0100-024F,U+1E00-1EFF}
+@font-face{font-family:Manrope;font-weight:700;font-display:swap;src:url(fonts/manrope-latin-700.woff2) format("woff2");unicode-range:U+0000-00FF,U+2000-206F,U+20AC,U+2190-2193}
+@font-face{font-family:Manrope;font-weight:700;font-display:swap;src:url(fonts/manrope-latin-ext-700.woff2) format("woff2");unicode-range:U+0100-024F,U+1E00-1EFF}
+
+:root{
+  --bg:#ffffff; --fg:#000; --sec:#8e8e93; --ter:#c7c7cc; --sep:#ededf0; --fill:#f2f2f7;
+  --accent:#000; --green:#1f9d55; --red:#e5352b;
+  --font:Manrope,-apple-system,system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#000; --fg:#fff; --sec:#8e8e93; --ter:#48484a; --sep:#1c1c1e; --fill:#1c1c1e;
+  --accent:#fff; --green:#3ccf73; --red:#ff5a4f; color-scheme:dark}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--fg)}
+body{font-family:var(--font);font-size:17px;
+  padding:calc(12px + env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left))}
+.wrap{max-width:440px;margin:0 auto}
+button,input{font:inherit;color:inherit;background:none;border:0;padding:0;outline:none;cursor:pointer}
+input{cursor:text}
+button:focus-visible{outline:2px solid var(--fg);outline-offset:3px;border-radius:8px}
+.num{font-variant-numeric:tabular-nums}
+
+.status{display:flex;justify-content:space-between;align-items:center;height:44px;font-size:15px;color:var(--sec)}
+.status b{font-weight:700}
+.status b.pos{color:var(--green)} .status b.neg{color:var(--red)}
+.status .settle{font-size:15px;font-weight:700;color:var(--fg)}
+.status .settle.confirm{color:var(--green)}
+
+.entry{padding:56px 0 28px;display:flex;flex-direction:column;gap:14px}
+.amount{display:flex;align-items:baseline;gap:8px}
+.amount input{max-width:80%;font-size:64px;font-weight:700;letter-spacing:-.04em;line-height:1.05}
+.amount input::placeholder,.what input::placeholder{color:var(--ter)}
+.amount span{font-size:32px;font-weight:600;color:var(--ter)}
+.what input{width:100%;font-size:22px;font-weight:400;padding:2px 0}
+
+.foot{display:flex;align-items:center;justify-content:space-between;margin-top:22px}
+.who{display:flex;gap:6px}
+.who button{height:36px;padding:0 16px;border-radius:18px;font-size:15px;font-weight:600;color:var(--sec)}
+.who button.on{background:var(--fill);color:var(--fg)}
+.go{width:52px;height:52px;border-radius:50%;background:var(--accent);color:var(--bg);display:grid;place-items:center;transition:opacity .15s,transform .15s}
+.go:disabled{opacity:.18;cursor:default}
+.go:active:not(:disabled){transform:scale(.94)}
+.go svg{width:24px;height:24px}
+
+.hist{margin-top:28px;border-top:1px solid var(--sep)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;text-align:left;padding:14px 0;border-bottom:1px solid var(--sep)}
+.row .t{min-width:0;flex:1}
+.row .ti{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .su{font-size:14px;color:var(--sec);margin-top:2px}
+.row .v{font-weight:500;white-space:nowrap}
+.row.s .ti{color:var(--sec)}
+.row .del{font-size:15px;font-weight:700;color:var(--red);padding:6px 0 6px 10px}
+.empty{color:var(--sec);font-size:15px;padding:18px 0}
+
+.more{display:block;margin:26px auto 0;font-size:14px;color:var(--sec)}
+.sync{text-align:center;font-size:12px;color:var(--ter);margin-top:6px;min-height:1em}
+.sync.err{color:var(--red)}
+
+.settings{margin-top:22px;display:flex;flex-direction:column;gap:10px}
+.settings h3{font-size:13px;font-weight:600;color:var(--sec);margin:10px 0 0;text-transform:uppercase;letter-spacing:.04em}
+.settings input{width:100%;background:var(--fill);border-radius:12px;padding:12px 14px;font-size:16px}
+.settings .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.settings .btns{display:flex;gap:8px;flex-wrap:wrap}
+.settings .btns button{background:var(--fill);border-radius:12px;padding:11px 14px;font-size:15px;font-weight:600}
+.settings .btns button.main{background:var(--accent);color:var(--bg)}
+.settings p{margin:0;font-size:13px;color:var(--sec)}
+
+.toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom));transform:translate(-50%,16px);opacity:0;background:var(--fg);color:var(--bg);
+  padding:10px 18px;border-radius:20px;font-size:15px;font-weight:600;transition:.25s;pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){.toast,.go{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="status">
+    <span id="bal">Vyrovnáno</span>
+    <button class="settle" id="settle" type="button" hidden>Vyrovnat</button>
+  </div>
+
+  <form class="entry" id="f" autocomplete="off">
+    <label class="amount"><input id="amount" inputmode="decimal" placeholder="0" aria-label="Částka"><span>Kč</span></label>
+    <label class="what"><input id="note" placeholder="Za co" aria-label="Za co" enterkeyhint="done" maxlength="120"></label>
+    <div class="foot">
+      <div class="who" role="group" aria-label="Kdo platil">
+        <button class="on" type="button" id="pMe" aria-pressed="true">Já</button>
+        <button type="button" id="pEx" aria-pressed="false">Ex</button>
+      </div>
+      <button class="go" id="go" type="submit" aria-label="Přidat" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </form>
+
+  <section class="hist" id="list"></section>
+
+  <button class="more" id="moreBtn" type="button">Nastavení</button>
+  <div class="sync" id="sync"></div>
+
+  <section class="settings" id="settings" hidden>
+    <h3>Jména</h3>
+    <div class="two"><input id="nMe" placeholder="Já" maxlength="30"><input id="nEx" placeholder="Ex" maxlength="30"></div>
+    <h3>Synchronizace s Google tabulkou</h3>
+    <input id="url" placeholder="URL Apps Script (…/exec)" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <input id="token" placeholder="Tajný klíč" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <div class="btns"><button class="main" id="saveSet" type="button">Uložit</button><button id="syncNow" type="button">Synchronizovat</button></div>
+    <h3>Záloha</h3>
+    <div class="btns"><button id="exp" type="button">Exportovat</button><button id="imp" type="button">Importovat</button></div>
+    <input type="file" id="impFile" accept="application/json,.json" hidden>
+    <p>Export uloží soubor, který si můžeš dát na Disk Google. Import záznamy sloučí, nic nepřepíše.</p>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const K='vydaje-v1';
+  const fmt=n=>new Intl.NumberFormat('cs-CZ',{maximumFractionDigits:2}).format(n)+' Kč';
+  const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+
+  let st={entries:[],names:{me:'',ex:''},url:'',token:'',lastSync:0,dirty:false};
+  try{ Object.assign(st,JSON.parse(localStorage.getItem(K)||'{}')); }catch(e){}
+  function save(){ try{ localStorage.setItem(K,JSON.stringify(st)); }catch(e){ toast('Nelze uložit do telefonu'); } }
+
+  let payer='me', balance=0, armed=null, settleArmed=false, syncing=false, syncMsg='', syncErr=false;
+  const nm=k=>st.names[k]||(k==='me'?'Já':'Ex');
+  const live=()=>st.entries.filter(e=>!e.deleted).sort((a,b)=>b.ts-a.ts);
+
+  function computeBalance(){
+    let b=0;
+    for(const e of live()){ const a=Number(e.amount)||0;
+      if(e.type==='settle') b+= e.payer==='ex'?-a:a; else b+= e.payer==='me'?a/2:-a/2; }
+    return Math.round(b*100)/100;
+  }
+
+  function render(){
+    balance=computeBalance();
+    const bal=$('bal'); bal.textContent='';
+    if(Math.abs(balance)<0.005){ bal.textContent='Vyrovnáno'; settleArmed=false; }
+    else{
+      const b=document.createElement('b'); b.className='num '+(balance>0?'pos':'neg'); b.textContent=fmt(Math.abs(balance));
+      bal.append(balance>0? nm('ex')+' ti dluží ' : 'Dlužíš '+nm('ex')+' ', b);
+    }
+    const s=$('settle'); s.hidden=Math.abs(balance)<0.005;
+    s.textContent=settleArmed?'Potvrdit':'Vyrovnat'; s.classList.toggle('confirm',settleArmed);
+    $('pMe').textContent=nm('me'); $('pEx').textContent=nm('ex');
+
+    const list=$('list'); list.textContent='';
+    const items=live();
+    if(!items.length){ const d=document.createElement('div'); d.className='empty'; d.textContent='Zatím žádné výdaje.'; list.appendChild(d); }
+    for(const e of items){
+      const row=document.createElement('button'); row.type='button'; row.className='row'+(e.type==='settle'?' s':'');
+      const t=document.createElement('span'); t.className='t';
+      const ti=document.createElement('div'); ti.className='ti';
+      const su=document.createElement('div'); su.className='su';
+      const d=new Date(e.ts), day=d.getDate()+'. '+(d.getMonth()+1)+'.'+(d.getFullYear()!==new Date().getFullYear()?' '+d.getFullYear():'');
+      if(e.type==='settle'){ ti.textContent='Vyrovnáno'; su.textContent=day+' · '+nm(e.payer).toLowerCase()+' → '+nm(e.payer==='me'?'ex':'me').toLowerCase(); }
+      else { ti.textContent=e.note||'Výdaj'; su.textContent=day+' · '+nm(e.payer).toLowerCase(); }
+      t.append(ti,su);
+      const v=document.createElement('span'); v.className='v num'; v.textContent=fmt(e.amount);
+      row.append(t,v);
+      if(armed===e.id){ const del=document.createElement('span'); del.className='del'; del.textContent='Smazat'; row.append(del); }
+      row.onclick=()=>{
+        if(armed!==e.id){ armed=e.id; render(); return; }
+        e.deleted=true; e.updated=Date.now(); armed=null; st.dirty=true; save(); render(); sync(); toast('Smazáno');
+      };
+      list.appendChild(row);
+    }
+    renderSync();
+  }
+
+  function renderSync(){
+    const s=$('sync'); s.classList.toggle('err',syncErr);
+    if(syncMsg){ s.textContent=syncMsg; return; }
+    if(!st.url){ s.textContent=''; return; }
+    s.textContent= st.dirty?'Čeká na synchronizaci': st.lastSync?'Synchronizováno '+new Date(st.lastSync).toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'}):'';
+  }
+
+  let tt; function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('on'),1600); }
+
+  // částka – šířka podle obsahu, ať „Kč“ stojí hned za číslem
+  const amt=$('amount');
+  function fit(){ const len=Math.max(1,(amt.value||amt.placeholder).length); amt.style.width=(len*0.64+0.1)+'em'; }
+  function parseAmt(){ const v=parseFloat((amt.value||'').replace(/\s/g,'').replace(',','.')); return isFinite(v)&&v>0?Math.round(v*100)/100:0; }
+  amt.addEventListener('input',()=>{ amt.value=amt.value.replace(/[^\d,.\s]/g,''); fit(); $('go').disabled=!parseAmt(); });
+  fit();
+
+  function setPayer(p){ payer=p; $('pMe').classList.toggle('on',p==='me'); $('pEx').classList.toggle('on',p==='ex');
+    $('pMe').setAttribute('aria-pressed',p==='me'); $('pEx').setAttribute('aria-pressed',p==='ex'); }
+  $('pMe').onclick=()=>setPayer('me'); $('pEx').onclick=()=>setPayer('ex');
+
+  $('f').addEventListener('submit',ev=>{
+    ev.preventDefault(); const a=parseAmt(); if(!a) return;
+    const now=Date.now();
+    st.entries.push({id:uid(),type:'expense',amount:a,note:$('note').value.trim().slice(0,120),payer,ts:now,deleted:false,updated:now});
+    st.dirty=true; save();
+    amt.value=''; $('note').value=''; fit(); $('go').disabled=true; amt.blur(); $('note').blur();
+    armed=null; render(); sync(); toast('Přidáno');
+  });
+  $('note').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); if(parseAmt()) $('f').requestSubmit(); else $('note').blur(); } });
+
+  $('settle').onclick=()=>{
+    if(!settleArmed){ settleArmed=true; render(); setTimeout(()=>{ if(settleArmed){ settleArmed=false; render(); } },4000); return; }
+    settleArmed=false; const now=Date.now();
+    st.entries.push({id:uid(),type:'settle',amount:Math.abs(balance),payer:balance>0?'ex':'me',note:'',ts:now,deleted:false,updated:now});
+    st.dirty=true; save(); render(); sync(); toast('Vyrovnáno');
+  };
+  document.addEventListener('click',e=>{ if(armed && !e.target.closest('.row')){ armed=null; render(); } });
+
+  // nastavení
+  $('moreBtn').onclick=()=>{
+    const s=$('settings'); s.hidden=!s.hidden;
+    if(!s.hidden){ $('nMe').value=st.names.me||''; $('nEx').value=st.names.ex||''; $('url').value=st.url||''; $('token').value=st.token||'';
+      setTimeout(()=>s.scrollIntoView({behavior:'smooth',block:'start'}),50); }
+  };
+  $('saveSet').onclick=()=>{
+    st.names={me:$('nMe').value.trim().slice(0,30),ex:$('nEx').value.trim().slice(0,30)};
+    st.url=$('url').value.trim(); st.token=$('token').value.trim(); st.dirty=true; save();
+    $('settings').hidden=true; window.scrollTo({top:0,behavior:'smooth'}); render(); sync(); toast('Uloženo');
+  };
+  $('syncNow').onclick=()=>{ st.url=$('url').value.trim(); st.token=$('token').value.trim(); save(); sync(); };
+  $('exp').onclick=async()=>{
+    const name='vydaje-zaloha-'+new Date().toISOString().slice(0,10)+'.json';
+    const file=new File([JSON.stringify({app:'vydaje-za-deti',exported:new Date().toISOString(),names:st.names,entries:st.entries})],name,{type:'application/json'});
+    try{ if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:name}); return; } }catch(e){ if(e.name==='AbortError') return; }
+    const a=document.createElement('a'); a.href=URL.createObjectURL(file); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+  };
+  $('imp').onclick=()=>$('impFile').click();
+  $('impFile').onchange=async ev=>{
+    const f=ev.target.files[0]; if(!f) return;
+    try{ const j=JSON.parse(await f.text()); merge(j.entries||[]); if(j.names&&!st.names.me&&!st.names.ex) st.names=j.names; st.dirty=true; save(); render(); toast('Záloha načtena'); sync(); }
+    catch(e){ toast('Neplatný soubor'); }
+    ev.target.value='';
+  };
+
+  // synchronizace s Apps Scriptem
+  function merge(incoming){
+    const map=new Map(st.entries.map(e=>[e.id,e]));
+    for(const r of incoming||[]){
+      if(!r||!r.id) continue;
+      const cur=map.get(r.id);
+      if(!cur||(Number(r.updated)||0)>(Number(cur.updated)||0)) map.set(r.id,{
+        id:String(r.id),type:r.type==='settle'?'settle':'expense',amount:Number(r.amount)||0,note:String(r.note||''),
+        payer:r.payer==='ex'?'ex':'me',ts:Number(r.ts)||Date.now(),deleted:r.deleted===true||r.deleted==='TRUE'||r.deleted==='true',updated:Number(r.updated)||0});
+    }
+    st.entries=[...map.values()];
+  }
+  async function sync(){
+    if(!st.url||syncing) return;
+    if(!navigator.onLine){ syncMsg='Offline – uloženo v telefonu'; syncErr=false; renderSync(); return; }
+    syncing=true; syncMsg='Synchronizuji…'; syncErr=false; renderSync();
+    try{
+      const res=await fetch(st.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({token:st.token,entries:st.entries,names:st.names})});
+      const j=await res.json(); if(!j.ok) throw new Error(j.error||'chyba');
+      merge(j.entries); if(j.names&&(j.names.me||j.names.ex)) st.names=j.names;
+      st.dirty=false; st.lastSync=Date.now(); save(); syncMsg='';
+    }catch(e){ syncMsg='Synchronizace selhala: '+(e.message||e); syncErr=true; }
+    syncing=false; render();
+  }
+
+  window.addEventListener('online',sync);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) sync(); });
+  if('serviceWorker' in navigator && location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
+  render(); sync();
+})();
+</script>
+</body>
+</html>

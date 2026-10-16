@@ -88,7 +88,31 @@ button:focus-visible{outline:2px solid var(--fg);outline-offset:3px;border-radiu
 .settings .btns button.main{background:var(--accent);color:var(--bg)}
 .settings p{margin:0;font-size:13px;color:var(--sec)}
 
-.toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom));transform:translate(-50%,16px);opacity:0;background:var(--fg);color:var(--bg);
+/* přehled k vyrovnání */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .25s;z-index:10}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:11;max-width:520px;margin:0 auto;max-height:88%;overflow:auto;background:var(--bg);
+  border-radius:20px 20px 0 0;transform:translateY(105%);transition:transform .3s cubic-bezier(.2,.8,.2,1);
+  padding:10px max(24px,env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left))}
+.sheet.on{transform:none}
+.grab{width:36px;height:5px;border-radius:3px;background:var(--sep);margin:0 auto 14px}
+.sh-top{display:flex;justify-content:space-between;align-items:baseline}
+.sh-top h2{font-size:15px;font-weight:600;color:var(--sec);margin:0}
+.sh-top button{font-size:15px;font-weight:600;color:var(--sec)}
+.sh-sum{font-size:40px;font-weight:700;letter-spacing:-.03em;margin:8px 0 2px}
+.sh-sub{font-size:15px;color:var(--sec)}
+.sh-list{margin:18px 0 6px;border-top:1px solid var(--sep)}
+.sh-row{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--sep);font-size:15px}
+.sh-row .l{min-width:0}
+.sh-row .l div:first-child{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sh-row .l div:last-child{font-size:13px;color:var(--sec);margin-top:1px}
+.sh-row .r{white-space:nowrap;font-weight:500}
+.sh-tot{display:flex;justify-content:space-between;font-size:14px;color:var(--sec);padding:6px 0}
+.sh-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}
+.sh-btns button{height:50px;border-radius:14px;background:var(--fill);font-weight:600;font-size:16px}
+.sh-btns .wide{grid-column:1/-1;background:var(--accent);color:var(--bg)}
+.sh-btns .wide.armed{background:var(--green);color:#fff}
+.toast{z-index:20;position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translate(-50%,-16px);opacity:0;background:var(--fg);color:var(--bg);
   padding:10px 18px;border-radius:20px;font-size:15px;font-weight:600;transition:.25s;pointer-events:none}
 .toast.on{opacity:1;transform:translate(-50%,0)}
 @media (prefers-reduced-motion:reduce){.toast,.go{transition:none}}
@@ -136,6 +160,20 @@ button:focus-visible{outline:2px solid var(--fg);outline-offset:3px;border-radiu
     <p>Export uloží soubor, který si můžeš dát na Disk Google. Import záznamy sloučí, nic nepřepíše.</p>
   </section>
 </div>
+<div class="scrim" id="scrim"></div>
+<section class="sheet" id="sheet" role="dialog" aria-label="Přehled k vyrovnání">
+  <div class="grab"></div>
+  <div class="sh-top"><h2 id="shTitle">K vyrovnání</h2><button type="button" id="shClose">Zavřít</button></div>
+  <div class="sh-sum num" id="shSum"></div>
+  <div class="sh-sub" id="shSub"></div>
+  <div class="sh-list" id="shList"></div>
+  <div class="sh-tot num" id="shTot"></div>
+  <div class="sh-btns">
+    <button type="button" id="shShare">Poslat</button>
+    <button type="button" id="shCopy">Kopírovat</button>
+    <button type="button" class="wide" id="shDone">Označit jako vyrovnané</button>
+  </div>
+</section>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -238,11 +276,81 @@ button:focus-visible{outline:2px solid var(--fg);outline-offset:3px;border-radiu
   });
   $('note').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); if(parseAmt()) $('f').requestSubmit(); else $('note').blur(); } });
 
-  $('settle').onclick=()=>{
-    if(!settleArmed){ settleArmed=true; render(); setTimeout(()=>{ if(settleArmed){ settleArmed=false; render(); } },4000); return; }
-    settleArmed=false; const now=Date.now();
+  /* ---- přehled k vyrovnání ---- */
+  const dd=ts=>{ const d=new Date(ts); return d.getDate()+'. '+(d.getMonth()+1)+'.'; };
+  function openItems(){
+    const all=live().slice().sort((a,b)=>a.ts-b.ts);
+    let last=-1; all.forEach((e,i)=>{ if(e.type==='settle') last=i; });
+    return all.slice(last+1).filter(e=>e.type==='expense');
+  }
+  function summaryText(){
+    const items=openItems();
+    const lines=[];
+    const from=items.length?dd(items[0].ts):'', to=items.length?dd(items[items.length-1].ts):'';
+    lines.push('Výdaje za děti'+(items.length?' ('+(from===to?from:from+' – '+to)+')':''));
+    lines.push('');
+    let tMe=0,tEx=0;
+    for(const e of items){
+      if(e.payer==='me') tMe+=e.amount; else tEx+=e.amount;
+      lines.push('• '+dd(e.ts)+' '+(e.note||'Výdaj')+' – '+fmt(e.amount)+' ('+nm(e.payer)+')');
+    }
+    lines.push('');
+    lines.push('Zaplatil(a) '+nm('me')+': '+fmt(tMe)+', '+nm('ex')+': '+fmt(tEx));
+    lines.push('Celkem: '+fmt(tMe+tEx)+', polovina: '+fmt((tMe+tEx)/2));
+    lines.push('');
+    lines.push('K vyrovnání: '+fmt(Math.abs(balance))+' ('+(balance>0? nm('ex')+' → '+nm('me') : nm('me')+' → '+nm('ex'))+')');
+    return lines.join('\n').replace(/\u00a0/g,' ');
+  }
+  let doneArmed=false;
+  function openSheet(){
+    const items=openItems(); doneArmed=false;
+    $('shDone').textContent='Označit jako vyrovnané'; $('shDone').classList.remove('armed');
+    $('shSum').textContent=fmt(Math.abs(balance));
+    $('shSub').textContent= balance>0 ? nm('ex')+' posílá '+(st.names.me?nm('me'):'tobě') : (st.names.me?nm('me'):'Ty')+' posíláš '+nm('ex');
+    const list=$('shList'); list.textContent='';
+    let tMe=0,tEx=0;
+    for(const e of items.slice().reverse()){
+      if(e.payer==='me') tMe+=e.amount; else tEx+=e.amount;
+      const r=document.createElement('div'); r.className='sh-row';
+      const l=document.createElement('div'); l.className='l';
+      const a=document.createElement('div'); a.textContent=e.note||'Výdaj';
+      const b=document.createElement('div'); b.textContent=dd(e.ts)+' · '+nm(e.payer).toLowerCase();
+      l.append(a,b);
+      const v=document.createElement('div'); v.className='r num'; v.textContent=fmt(e.amount);
+      r.append(l,v); list.appendChild(r);
+    }
+    if(!items.length){ const r=document.createElement('div'); r.className='sh-row'; r.textContent='Od posledního vyrovnání žádné výdaje.'; list.appendChild(r); }
+    $('shTot').textContent=''; 
+    const x=document.createElement('span'); x.textContent=nm('me')+' '+fmt(tMe)+' · '+nm('ex')+' '+fmt(tEx);
+    const y=document.createElement('span'); y.textContent='celkem '+fmt(tMe+tEx);
+    $('shTot').append(x,y);
+    $('scrim').classList.add('on'); $('sheet').classList.add('on'); $('sheet').scrollTop=0;
+  }
+  function closeSheet(){ $('scrim').classList.remove('on'); $('sheet').classList.remove('on'); }
+  $('settle').onclick=openSheet;
+  $('scrim').onclick=closeSheet; $('shClose').onclick=closeSheet;
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeSheet(); });
+
+  $('shCopy').onclick=async()=>{
+    const t=summaryText();
+    try{ await navigator.clipboard.writeText(t); toast('Zkopírováno'); }
+    catch(e){
+      const ta=document.createElement('textarea'); ta.value=t; ta.setAttribute('readonly',''); ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0,t.length);
+      try{ document.execCommand('copy'); toast('Zkopírováno'); }catch(_){ toast('Kopírování se nepovedlo'); }
+      ta.remove();
+    }
+  };
+  $('shShare').onclick=async()=>{
+    const t=summaryText();
+    if(navigator.share){ try{ await navigator.share({text:t}); }catch(e){} }
+    else $('shCopy').onclick();
+  };
+  $('shDone').onclick=()=>{
+    if(!doneArmed){ doneArmed=true; $('shDone').textContent='Opravdu? Klepni znovu'; $('shDone').classList.add('armed'); return; }
+    const now=Date.now();
     st.entries.push({id:uid(),type:'settle',amount:Math.abs(balance),payer:balance>0?'ex':'me',note:'',ts:now,deleted:false,updated:now});
-    st.dirty=true; save(); render(); sync(); toast('Vyrovnáno');
+    st.dirty=true; save(); closeSheet(); render(); sync(); toast('Vyrovnáno');
   };
   document.addEventListener('click',e=>{ if(armed && !e.target.closest('.row')){ armed=null; render(); } });
 

@@ -73,7 +73,9 @@ button:focus-visible{outline:2px solid var(--fg);outline-offset:3px;border-radiu
 .row .del{font-size:15px;font-weight:700;color:var(--red);padding:6px 0 6px 10px}
 .empty{color:var(--sec);font-size:15px;padding:18px 0}
 
-.more{display:block;margin:26px auto 0;font-size:14px;color:var(--sec)}
+.bottom{display:flex;justify-content:center;gap:22px;margin-top:26px}
+.more{font-size:14px;color:var(--sec)}
+.more.warn{color:var(--red);font-weight:600}
 .sync{text-align:center;font-size:12px;color:var(--ter);margin-top:6px;min-height:1em}
 .sync.err{color:var(--red)}
 
@@ -115,7 +117,10 @@ button:focus-visible{outline:2px solid var(--fg);outline-offset:3px;border-radiu
 
   <section class="hist" id="list"></section>
 
-  <button class="more" id="moreBtn" type="button">Nastavení</button>
+  <div class="bottom">
+    <button class="more" id="backupBtn" type="button">Záloha</button>
+    <button class="more" id="moreBtn" type="button">Nastavení</button>
+  </div>
   <div class="sync" id="sync"></div>
 
   <section class="settings" id="settings" hidden>
@@ -140,7 +145,7 @@ button:focus-visible{outline:2px solid var(--fg);outline-offset:3px;border-radiu
   const fmt=n=>new Intl.NumberFormat('cs-CZ',{maximumFractionDigits:2}).format(n)+' Kč';
   const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 
-  let st={entries:[],names:{me:'',ex:''},url:'',token:'',lastSync:0,dirty:false};
+  let st={entries:[],names:{me:'',ex:''},url:'',token:'',lastSync:0,dirty:false,lastBackup:0};
   try{ Object.assign(st,JSON.parse(localStorage.getItem(K)||'{}')); }catch(e){}
   function save(){ try{ localStorage.setItem(K,JSON.stringify(st)); }catch(e){ toast('Nelze uložit do telefonu'); } }
 
@@ -188,7 +193,19 @@ button:focus-visible{outline:2px solid var(--fg);outline-offset:3px;border-radiu
       };
       list.appendChild(row);
     }
-    renderSync();
+    renderSync(); renderBackup();
+  }
+
+  function renderBackup(){
+    const b=$('backupBtn'), has=live().length>0;
+    let txt, warn=false;
+    if(!st.lastBackup){ txt='Záloha · zatím žádná'; warn=has; }
+    else{
+      const days=Math.floor((Date.now()-st.lastBackup)/86400000);
+      txt='Záloha · '+(days===0?'dnes':days===1?'včera':'před '+days+' '+(days<5?'dny':'dny'));
+      warn=days>=14;
+    }
+    b.textContent=txt; b.classList.toggle('warn',warn);
   }
 
   function renderSync(){
@@ -241,12 +258,15 @@ button:focus-visible{outline:2px solid var(--fg);outline-offset:3px;border-radiu
     $('settings').hidden=true; window.scrollTo({top:0,behavior:'smooth'}); render(); sync(); toast('Uloženo');
   };
   $('syncNow').onclick=()=>{ st.url=$('url').value.trim(); st.token=$('token').value.trim(); save(); sync(); };
-  $('exp').onclick=async()=>{
+  async function exportBackup(){
     const name='vydaje-zaloha-'+new Date().toISOString().slice(0,10)+'.json';
     const file=new File([JSON.stringify({app:'vydaje-za-deti',exported:new Date().toISOString(),names:st.names,entries:st.entries})],name,{type:'application/json'});
-    try{ if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:name}); return; } }catch(e){ if(e.name==='AbortError') return; }
-    const a=document.createElement('a'); a.href=URL.createObjectURL(file); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),5000);
-  };
+    const done=()=>{ st.lastBackup=Date.now(); save(); renderBackup(); toast('Záloha uložena'); };
+    try{ if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:name}); done(); return; } }catch(e){ if(e.name==='AbortError') return; }
+    const a=document.createElement('a'); a.href=URL.createObjectURL(file); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),5000); done();
+  }
+  $('exp').onclick=exportBackup;
+  $('backupBtn').onclick=exportBackup;
   $('imp').onclick=()=>$('impFile').click();
   $('impFile').onchange=async ev=>{
     const f=ev.target.files[0]; if(!f) return;

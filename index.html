@@ -302,7 +302,12 @@ button:focus-visible{outline:2px solid var(--fg);outline-offset:3px;border-radiu
 
   window.addEventListener('online',sync);
   document.addEventListener('visibilitychange',()=>{ if(!document.hidden) sync(); });
-  if('serviceWorker' in navigator && location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if('serviceWorker' in navigator && location.protocol==='https:') navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden) r.update().catch(()=>{}); });
+  }).catch(()=>{});
+    // když se aktivuje nová verze, jednou se načti znovu
+    let reloaded=!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(reloaded) return; reloaded=true; location.reload(); });
   render(); sync();
 })();
 </script>

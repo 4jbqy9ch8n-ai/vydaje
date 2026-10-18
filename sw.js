@@ -1,5 +1,5 @@
 // Offline cache aplikace. Při změně souborů zvyš číslo verze.
-const CACHE = 'vydaje-v7';
+const CACHE = 'vydaje-v8';
 const FILES = ['./', 'index.html', 'manifest.json', 'icon-180.png', 'icon-192.png', 'icon-512.png',
   ...[400,500,600,700].flatMap(w => [`fonts/manrope-latin-${w}.woff2`, `fonts/manrope-latin-ext-${w}.woff2`])];
 self.addEventListener('install', e => {
